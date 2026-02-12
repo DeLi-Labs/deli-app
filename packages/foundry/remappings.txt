@@ -1,2 +1,7 @@
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts
-  
+@v4-core=lib/uniswap-hooks/lib/v4-core/src
+@uniswap/v4-core=lib/uniswap-hooks/lib/v4-core/
+@v4-periphery=lib/uniswap-hooks/lib/v4-periphery/src
+@v4-core-test=lib/uniswap-hooks/lib/v4-core/test
+@solady=lib/solady/src
+@commerce-payments=lib/commerce-payments/src/

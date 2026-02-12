@@ -7,3 +7,12 @@
 [submodule "packages/foundry/lib/solidity-bytes-utils"]
 	path = packages/foundry/lib/solidity-bytes-utils
 	url = https://github.com/gnsps/solidity-bytes-utils
+[submodule "packages/foundry/lib/uniswap-hooks"]
+	path = packages/foundry/lib/uniswap-hooks
+	url = https://github.com/openzeppelin/uniswap-hooks
+[submodule "packages/foundry/lib/solady"]
+	path = packages/foundry/lib/solady
+	url = https://github.com/vectorized/solady
+[submodule "packages/foundry/lib/commerce-payments"]
+	path = packages/foundry/lib/commerce-payments
+	url = https://github.com/base/commerce-payments

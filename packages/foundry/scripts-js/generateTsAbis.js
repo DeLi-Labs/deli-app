@@ -237,6 +237,36 @@ function main() {
     });
   });
 
+  // Add contracts from deployments JSON that don't have broadcast entries
+  // This handles cases where contracts are deployed via vm.deployCode() or other methods
+  Object.entries(deployments).forEach(([chainId, deploymentMap]) => {
+    if (!allGeneratedContracts[chainId]) {
+      allGeneratedContracts[chainId] = {};
+    }
+    
+    Object.entries(deploymentMap).forEach(([address, contractName]) => {
+      // Skip networkName entry
+      if (contractName === "networkName") return;
+      
+      // Check if this contract is already in allGeneratedContracts
+      const existingContract = Object.values(allGeneratedContracts[chainId]).find(
+        (contract) => contract.address?.toLowerCase() === address.toLowerCase()
+      );
+      
+      if (!existingContract) {
+        // Try to find artifact for this contract
+        const artifact = getArtifactOfContract(contractName);
+        if (artifact) {
+          allGeneratedContracts[chainId][contractName] = {
+            address: address,
+            abi: artifact.abi,
+            inheritedFunctions: getInheritedFunctions(artifact),
+          };
+        }
+      }
+    });
+  });
+
   const NEXTJS_TARGET_DIR = "../nextjs/contracts/";
 
   // Ensure target directories exist
