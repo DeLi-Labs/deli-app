@@ -9,11 +9,13 @@ import {Permit2Forwarder} from "@v4-periphery/base/Permit2Forwarder.sol";
 import {Actions} from "@v4-periphery/libraries/Actions.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {IERC20Minimal} from "@uniswap/v4-core/src/interfaces/external/IERC20Minimal.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {FixedPriceLicenseHook} from "./FixedPriceLicenseHook.sol";
 
 contract FixedPriceSwapRouter is V4Router, ReentrancyLock, Permit2Forwarder {
     error PoolHookMismatch(address expected, address actual);
+    error Permit2NotApproved(address payer, address token, uint256 amount, uint256 approvedAmount);
 
     FixedPriceLicenseHook public immutable hook;
 
@@ -82,11 +84,29 @@ contract FixedPriceSwapRouter is V4Router, ReentrancyLock, Permit2Forwarder {
         poolManager.unlock(abi.encode(actions, params));
     }
 
-    function _pay(Currency token, address payer, uint256 amount) internal override {
+    function _pay(
+        Currency token,
+        address payer,
+        uint256 amount
+    ) internal override {
         if (payer == address(this)) {
             token.transfer(address(poolManager), amount);
         } else {
-            permit2.transferFrom(payer, address(poolManager), uint160(amount), Currency.unwrap(token));
+            address tokenAddress = Currency.unwrap(token);
+            // Check if Permit2 is approved
+            uint256 allowance = IERC20Minimal(tokenAddress).allowance(
+                payer,
+                address(permit2)
+            );
+            if (allowance < amount) {
+                revert Permit2NotApproved(payer, tokenAddress, amount, allowance);
+            }
+            permit2.transferFrom(
+                payer,
+                address(poolManager),
+                uint160(amount),
+                tokenAddress
+            );
         }
     }
 }
