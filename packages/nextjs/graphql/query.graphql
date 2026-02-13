@@ -1,0 +1,113 @@
+query Ips($orderBy: String, $orderDirection: String, $limit: Int, $offset: Int, $after: String, $before: String, $where: ipFilter) {
+  ips(orderBy: $orderBy, orderDirection: $orderDirection, limit: $limit, offset: $offset, after: $after, before: $before, where: $where) {
+    items {
+      id
+      tokenId
+      name
+      description
+      image
+      externalUrl
+      attachments {
+        items {
+          id
+          name
+          type
+          description
+          fileType
+          fileSizeBytes
+          uri
+        }
+      }
+      campaigns {
+        items {
+          id
+          licenseAddress
+          numeraireAddress
+          poolId
+          denominationUnit
+          denominationAmount
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    totalCount
+  }
+}
+
+query Campaign($id: String!) {
+  campaign(id: $id) {
+    id
+    ipId
+    licenseAddress
+    numeraireAddress
+    poolId
+    denominationUnit
+    denominationAmount
+  }
+}
+
+query Campaigns($orderBy: String, $orderDirection: String, $limit: Int, $offset: Int, $after: String, $before: String, $where: campaignFilter) {
+  campaigns(orderBy: $orderBy, orderDirection: $orderDirection, limit: $limit, offset: $offset, after: $after, before: $before, where: $where) {
+    items {
+      id
+      ipId
+      licenseAddress
+      numeraireAddress
+      poolId
+      denominationUnit
+      denominationAmount
+      ip {
+        id
+        tokenId
+        name
+        description
+        image
+        externalUrl
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    totalCount
+  }
+}
+
+query Ip($id: String!) {
+  ip(id: $id) {
+    id
+    tokenId
+    name
+    description
+    image
+    externalUrl
+    attachments {
+      items {
+        id
+        name
+        type
+        description
+        fileType
+        fileSizeBytes
+        uri
+      }
+    }
+    campaigns {
+      items {
+        id
+        licenseAddress
+        numeraireAddress
+        poolId
+        denominationUnit
+        denominationAmount
+      }
+    }
+  }
+}

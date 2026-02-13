@@ -114,7 +114,9 @@ contract CampaignManager is Ownable, IERC721Receiver {
             tickSpacing: TICK_SPACING
         });
 
-        license.mint(address(licenseHook), totalTokensToSell);
+        license.mint(address(this), totalTokensToSell);
+        license.approve(address(licenseHook), totalTokensToSell);
+        licenseHook.deposit(Currency.wrap(address(license)), totalTokensToSell);
 
         licenseHook.initializeCampaign(poolKey.toId(), patentId);
 

@@ -9,9 +9,42 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: process.env.NEXT_PUBLIC_IGNORE_BUILD_ERROR === "true",
   },
-  webpack: config => {
-    config.resolve.fallback = { fs: false, net: false, tls: false };
+  webpack: (config, { isServer }) => {
+    config.resolve.fallback = {
+      fs: false,
+      net: false,
+      tls: false,
+      worker_threads: false,
+    };
     config.externals.push("pino-pretty", "lokijs", "encoding");
+
+    // Exclude Node.js-specific modules from client bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        worker_threads: false,
+      };
+
+      // Ignore node-localstorage in client bundle (it's Node.js only)
+      // GoogleAuthenticator doesn't use storage, so this is safe
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const webpack = require("webpack");
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^node-localstorage$/,
+        }),
+      );
+    }
+
+    // Use TypeScript loader for API routes to support decorator metadata
+    if (isServer) {
+      const originalEntry = config.entry;
+      config.entry = async () => {
+        const entries = await originalEntry();
+        return entries;
+      };
+    }
+
     return config;
   },
 };

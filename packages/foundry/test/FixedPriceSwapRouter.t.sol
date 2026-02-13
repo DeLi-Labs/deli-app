@@ -172,7 +172,7 @@ contract FixedPriceSwapRouterTest is Test, Deployers, DeployPermit2 {
         
         // Initialize hook with a mock campaignManager address (use test contract as campaignManager for testing)
         // In production, this would be the actual CampaignManager address
-        hook.initialize(address(this));
+        hook.initializeCampaign(poolId, PATENT_ID);
 
         // Deploy license token - we need to ensure address(numeraire) < address(licenseToken)
         // Use create2 or deploy multiple times until we get the right order

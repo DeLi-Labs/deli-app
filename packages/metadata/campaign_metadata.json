@@ -1,0 +1,6 @@
+{
+    "denomination": {
+        "unit": "Possible values: PER_ITEM, PER_HOUR, PER_DAY, PER_BYTE, PER_1000_TOKEN",
+        "amount": "Value of the denomination per unit"
+    }
+}

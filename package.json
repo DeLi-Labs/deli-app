@@ -42,6 +42,7 @@
     "next:lint": "yarn workspace @se-2/nextjs lint",
     "next:serve": "yarn workspace @se-2/nextjs serve",
     "ponder:codegen": "yarn workspace @se-2/ponder codegen",
+    "ponder:client:codegen": "yarn workspace @se-2/nextjs codegen",
     "ponder:dev": "yarn workspace @se-2/ponder dev",
     "ponder:lint": "yarn workspace @se-2/ponder lint",
     "ponder:serve": "yarn workspace @se-2/ponder serve",

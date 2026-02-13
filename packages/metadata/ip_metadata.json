@@ -1,0 +1,16 @@
+{
+    "name": "Name of the ip which will be displayed in the UI",
+    "description": "Description of the ip covering the technology which will be displayed in the UI",
+    "image": "URI of the image of the ip which will be displayed in the UI (decentralized storage)",
+    "externalUrl": "Link to ip registration in the official ip registry",
+    "attachments": [
+        {
+            "name": "Name of the attachment which will be displayed in the UI",
+            "type": "Possible values: ENCRYPTED, PLAIN",
+            "description": "Description of the attachment which will be displayed in the UI",
+            "fileType": "Type of the attachment",
+            "fileSizeBytes": "Size of the attachment",
+            "uri": "URI of the attachment which will be displayed in the UI (decentralized storage)"
+        }
+    ]
+}

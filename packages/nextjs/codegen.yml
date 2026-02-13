@@ -1,0 +1,17 @@
+schema: ${PONDER_GRAPHQL_URL:-http://localhost:42069/graphql}
+documents: graphql/**/*.graphql
+generates:
+  generated/graphql.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-graphql-request
+    config:
+      rawRequest: false
+      scalars:
+        BigInt: string
+        DateTime: string
+        Hex: string
+      enumsAsTypes: true
+      skipTypename: true
+      useTypeImports: true

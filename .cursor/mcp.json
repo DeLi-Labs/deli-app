@@ -2,6 +2,9 @@
   "mcpServers": {
     "context7": {
       "url": "https://mcp.context7.com/mcp"
+    },
+    "lit-protocol": {
+      "url": "https://developer.litprotocol.com/mcp"
     }
   }
 }
