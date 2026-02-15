@@ -39,3 +39,7 @@ ipfs-upload.config.json
 
 # graphql codegen
 /generated
+
+# Node localStorage (Lit SDK server-side)
+.node-localstorage/*
+!.node-localstorage/.gitkeep

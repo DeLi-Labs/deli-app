@@ -16,7 +16,6 @@ import {CampaignManager} from "../contracts/fixed/CampaignManager.sol";
 import {IPERC721} from "../contracts/IPERC721.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAuthCaptureEscrow} from "../contracts/interfaces/IAuthCaptureEscrow.sol";
-import {IPreApprovalPaymentCollector} from "../contracts/interfaces/IPreApprovalPaymentCollector.sol";
 
 /// @dev Mock ERC20 for numeraire token
 contract MockNumeraire is ERC20 {
@@ -165,7 +164,7 @@ contract DeployFixedPriceRouter is ScaffoldETHDeploy {
             allowedNumeraires,
             hook,
             IAuthCaptureEscrow(authCaptureEscrow),
-            IPreApprovalPaymentCollector(tokenCollector),
+            tokenCollector,
             deployer
         );
 

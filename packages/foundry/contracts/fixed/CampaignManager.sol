@@ -16,7 +16,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {PoolId} from "@v4-core/types/PoolId.sol";
 import {IAuthCaptureEscrow} from "../interfaces/IAuthCaptureEscrow.sol";
-import {IPreApprovalPaymentCollector} from "../interfaces/IPreApprovalPaymentCollector.sol";
 
 /// @title CampaignManager
 /// @notice Deploys campaigns with configuration; seeds pool.
@@ -50,10 +49,11 @@ contract CampaignManager is Ownable, IERC721Receiver {
     IPoolManager public immutable poolManager;
     IERC721 public immutable patentErc721;
     IAuthCaptureEscrow public immutable authCaptureEscrow;
-    IPreApprovalPaymentCollector public immutable tokenCollector;
 
     // TODO: implement proper treasury manager contract
     address public immutable treasuryManager;
+
+    address public immutable permit2TokenCollector;
 
     uint256 public saltIndex = 0;
 
@@ -67,14 +67,14 @@ contract CampaignManager is Ownable, IERC721Receiver {
         IERC20[] memory _allowedNumeraires,
         FixedPriceLicenseHook _licenseHook,
         IAuthCaptureEscrow _authCaptureEscrow,
-        IPreApprovalPaymentCollector _tokenCollector,
+        address _permit2TokenCollector,
         address _treasuryManager
     ) Ownable(_owner) {
         patentErc721 = _patentErc721;
         poolManager = _manager;
         licenseHook = _licenseHook;
         authCaptureEscrow = _authCaptureEscrow;
-        tokenCollector = _tokenCollector;
+        permit2TokenCollector = _permit2TokenCollector;
         treasuryManager = _treasuryManager;
 
         for (uint256 i = 0; i < _allowedNumeraires.length; i++) {
@@ -133,36 +133,22 @@ contract CampaignManager is Ownable, IERC721Receiver {
     }
 
     // called by any user who want to settle licensed action
-    function authorize(uint120 amount, LicenseERC20 license) external {
-        IAuthCaptureEscrow.PaymentInfo memory paymentInfo = IAuthCaptureEscrow
-            .PaymentInfo({
-                operator: address(this),
-                payer: msg.sender,
-                receiver: treasuryManager,
-                token: address(license),
-                maxAmount: amount,
-                preApprovalExpiry: uint48(
-                    block.timestamp + PRE_APPROVAL_EXPIRY
-                ),
-                authorizationExpiry: uint48(
-                    block.timestamp + AUTHORIZATION_EXPIRY
-                ),
-                refundExpiry: uint48(block.timestamp + REFUND_EXPIRY),
-                minFeeBps: 0,
-                maxFeeBps: 0,
-                feeReceiver: address(0),
-                salt: saltIndex++
-            });
+    function authorize(
+        IAuthCaptureEscrow.PaymentInfo memory paymentInfo,
+        bytes calldata collectorData
+    ) external {
+        LicenseERC20 license = LicenseERC20(paymentInfo.token);
+        uint256 patentId = license.patentId();
 
-        tokenCollector.preApprove(paymentInfo);
+        require(patentId != 0, InvalidLicenseContract());
 
-        IERC20(address(license)).approve(address(tokenCollector), amount);
+        require(paymentInfo.operator == address(this), InvalidOperator());
 
         authCaptureEscrow.authorize(
             paymentInfo,
-            amount,
-            address(tokenCollector),
-            ""
+            paymentInfo.maxAmount,
+            permit2TokenCollector,
+            collectorData
         );
     }
 
@@ -171,7 +157,6 @@ contract CampaignManager is Ownable, IERC721Receiver {
         IAuthCaptureEscrow.PaymentInfo memory paymentInfo,
         uint256 amount
     ) external {
-        // Get license contract to find patent ID
         LicenseERC20 license = LicenseERC20(paymentInfo.token);
         uint256 patentId = license.patentId();
 

@@ -1,5 +1,21 @@
-query Ips($orderBy: String, $orderDirection: String, $limit: Int, $offset: Int, $after: String, $before: String, $where: ipFilter) {
-  ips(orderBy: $orderBy, orderDirection: $orderDirection, limit: $limit, offset: $offset, after: $after, before: $before, where: $where) {
+query Ips(
+  $orderBy: String
+  $orderDirection: String
+  $limit: Int
+  $offset: Int
+  $after: String
+  $before: String
+  $where: ipFilter
+) {
+  ips(
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    limit: $limit
+    offset: $offset
+    after: $after
+    before: $before
+    where: $where
+  ) {
     items {
       id
       tokenId
@@ -51,8 +67,24 @@ query Campaign($id: String!) {
   }
 }
 
-query Campaigns($orderBy: String, $orderDirection: String, $limit: Int, $offset: Int, $after: String, $before: String, $where: campaignFilter) {
-  campaigns(orderBy: $orderBy, orderDirection: $orderDirection, limit: $limit, offset: $offset, after: $after, before: $before, where: $where) {
+query Campaigns(
+  $orderBy: String
+  $orderDirection: String
+  $limit: Int
+  $offset: Int
+  $after: String
+  $before: String
+  $where: campaignFilter
+) {
+  campaigns(
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    limit: $limit
+    offset: $offset
+    after: $after
+    before: $before
+    where: $where
+  ) {
     items {
       id
       ipId

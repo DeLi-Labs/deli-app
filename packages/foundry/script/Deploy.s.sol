@@ -22,7 +22,7 @@ contract DeployScript is ScaffoldETHDeploy {
         deployAuthCaptureEscrow.run();
 
         address authCaptureEscrow = deployAuthCaptureEscrow.authCaptureEscrow();
-        address tokenCollector = deployAuthCaptureEscrow.preApprovalPaymentCollector();
+        address tokenCollector = deployAuthCaptureEscrow.permit2PaymentCollector();
 
         DeployFixedPriceRouter deployFixedPriceRouter = new DeployFixedPriceRouter();
         deployFixedPriceRouter.run(authCaptureEscrow, tokenCollector);
