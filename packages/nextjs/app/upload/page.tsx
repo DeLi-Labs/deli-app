@@ -171,7 +171,9 @@ const UploadPage: NextPage = () => {
         processedAttachments = await Promise.all(
           formData.attachments.map(async (attachment): Promise<ProcessedAttachment> => {
             if (attachment.type === "ENCRYPTED") {
-              const result = await cipherGateway.encrypt(attachment.file);
+              const result = await cipherGateway.encrypt(attachment.file, {
+                metadata: { fileType: attachment.fileType },
+              });
               const serialized = result.ciphertext.serialize();
               const blob = new Blob([new Uint8Array(serialized)], {
                 type: "application/octet-stream",

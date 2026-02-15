@@ -46,11 +46,13 @@ class AttachmentProvider {
    * Compute the Lit decrypt resource id for an encrypted attachment.
    * Used when returning a 401 SIWE challenge so the client can include the ReCap in the signed message.
    */
-  async getDecryptResourceId(tokenId: number, attachmentId: number): Promise<string> {
-    const attachment = await this.getAttachmentMetadata(tokenId, attachmentId);
+  async getDecryptResourceId(attachment: Attachment): Promise<string> {
     const retrieveResult = await this.storageGateway.retrieve(attachment.uri);
     const encryptedData = EncryptedData.fromSerialized(retrieveResult.data);
-    return computeDecryptResourceId(DEFAULT_ACCESS_CONTROL_CONDITIONS, encryptedData.getHash());
+    return computeDecryptResourceId(
+      DEFAULT_ACCESS_CONTROL_CONDITIONS,
+      attachment.type === "ENCRYPTED" ? encryptedData.getHash() : "",
+    );
   }
 
   async getAttachment(
@@ -58,9 +60,6 @@ class AttachmentProvider {
     decryptAuth?: { authSig: AuthSig; sessionKeyPair: SessionKeyPair; domain?: string },
   ): Promise<AttachmentResult> {
     const retrieveResult = await this.storageGateway.retrieve(uri);
-
-    console.log("retrieveResult", retrieveResult.contentType);
-    console.log("retrieveResult", retrieveResult.metadata);
 
     if (!decryptAuth) {
       return {
@@ -70,8 +69,6 @@ class AttachmentProvider {
     }
 
     const encryptedData = EncryptedData.fromSerialized(retrieveResult.data);
-
-    console.log("encryptedData", encryptedData.getMetadata());
 
     const decryptedData = await this.cipherGateway.decrypt(encryptedData, {
       auth: {
@@ -83,7 +80,7 @@ class AttachmentProvider {
 
     return {
       data: decryptedData.decryptedData,
-      contentType: retrieveResult.contentType || "application/octet-stream",
+      contentType: (encryptedData.getMetadata()?.fileType as string) || "application/octet-stream",
     };
   }
 }

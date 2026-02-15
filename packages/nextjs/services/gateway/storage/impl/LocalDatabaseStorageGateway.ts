@@ -108,7 +108,6 @@ export class LocalDatabaseStorageGateway implements IStorageGateway {
     // If not found, try reloading the file (in case it was updated)
     let entry = this.storage.get(uri);
     if (!entry) {
-      console.log(`[LocalStorageGateway] Entry not found in memory, reloading storage from ${this.storageFilePath}`);
       await this.loadStorage();
       entry = this.storage.get(uri);
     }

@@ -14,6 +14,7 @@ import scaffoldConfig from "~~/scaffold.config";
 import { IncomingMessage } from "http";
 import type { AuthSig } from "@lit-protocol/types";
 import type { SessionKeyPair } from "~~/utils/lit/client";
+import { Attachment } from "~~/types/liquidip";
 
 // this api should return for specific attachment for specific ip in form of raw bytes requiring x402 payment in campaignId token
 
@@ -46,10 +47,15 @@ class IpAttachmentHandler {
         const domain = getExpectedDomain(req);
 
         let resourceId: string | undefined;
-        const metadata = await this.attachmentProvider.getAttachmentMetadata(tokenId, attachmentId).catch(() => null);
+        const metadata: Attachment = await this.attachmentProvider
+          .getAttachmentMetadata(tokenId, attachmentId)
+          .catch(error => {
+            console.error("Error getting attachment metadata:", error);
+            throw error;
+          });
 
         if (metadata?.type === "ENCRYPTED") {
-          resourceId = await this.attachmentProvider.getDecryptResourceId(tokenId, attachmentId);
+          resourceId = await this.attachmentProvider.getDecryptResourceId(metadata);
         }
 
         // Generate a fresh session key pair and fetch the Lit blockhash nonce
@@ -102,7 +108,7 @@ class IpAttachmentHandler {
 
       res.setHeader("Content-Type", attachmentResult.contentType);
       res.setHeader("Content-Disposition", `attachment; filename="attachment-${attachmentId}"`);
-      res.send(attachmentResult.data);
+      res.end(attachmentResult.data);
       return;
     } catch (error) {
       return handleAttachmentError(error, res);
