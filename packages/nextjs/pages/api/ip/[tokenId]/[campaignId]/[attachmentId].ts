@@ -6,7 +6,7 @@ import { SIWE_URI_PREFIX } from "@lit-protocol/constants";
 import AttachmentProvider from "~~/services/provider/attachment";
 import { handleAttachmentError } from "~~/utils/scaffold-eth/apiUtils";
 import { UnauthorizedError } from "~~/utils/scaffold-eth/errors";
-import { buildSiweMessage, parseAndVerifySiweAuth } from "~~/utils/auth/siwe";
+import { buildSiweChallengeResponse, buildSiweMessage, parseAndVerifySiweAuth } from "~~/utils/auth/siwe";
 import { getExpectedDomain } from "~~/utils/scaffold-eth/apiUtils";
 import { encryptSessionToken, decryptSessionToken } from "~~/utils/auth/sessionToken";
 import { getLitClient } from "~~/utils/lit/client";
@@ -14,7 +14,7 @@ import scaffoldConfig from "~~/scaffold.config";
 import { IncomingMessage } from "http";
 import type { AuthSig } from "@lit-protocol/types";
 import type { SessionKeyPair } from "~~/utils/lit/client";
-import { Attachment } from "~~/types/liquidip";
+import { Attachment, DecryptAuth } from "~~/types/liquidip";
 
 // this api should return for specific attachment for specific ip in form of raw bytes requiring x402 payment in campaignId token
 
@@ -35,53 +35,38 @@ class IpAttachmentHandler {
     @Query("accountAddress") accountAddress?: string,
     @Header("Authorization") authorization?: string,
   ) {
+    // If the attachment is plain, return the data directly
+    const metadata: Attachment = await this.attachmentProvider
+      .getAttachmentMetadata(tokenId, attachmentId)
+      .catch(error => {
+        console.error("Error getting attachment metadata:", error);
+        throw error;
+      });
+
+    if (metadata?.type === "PLAIN") {
+      const attachmentResult = await this.attachmentProvider.getAttachment(metadata.uri);
+
+      res.setHeader("Content-Type", attachmentResult.contentType);
+      res.setHeader("Content-Disposition", `attachment; filename="attachment-${attachmentId}"`);
+      res.end(attachmentResult.data);
+      return;
+    }
+
     if (!accountAddress) {
-      throw new UnauthorizedError(
-        "Endpoint is protected by Sign with Ethereum authentication. Provide your account address for proper SIWE message to be generated.",
-      );
+      return res.status(401).json({
+        error:
+          "Private patent data is protected by Sign with Ethereum authentication. Provide your account address for proper SIWE message to be generated.",
+      });
     }
 
     // ── No Authorization header → return 401 SIWE challenge ──────────
     if (!authorization) {
       try {
-        const domain = getExpectedDomain(req);
+        const resourceId = await this.attachmentProvider.getDecryptResourceId(metadata);
 
-        let resourceId: string | undefined;
-        const metadata: Attachment = await this.attachmentProvider
-          .getAttachmentMetadata(tokenId, attachmentId)
-          .catch(error => {
-            console.error("Error getting attachment metadata:", error);
-            throw error;
-          });
+        const siweChallengeResponse = await buildSiweChallengeResponse(req, accountAddress, resourceId);
 
-        if (metadata?.type === "ENCRYPTED") {
-          resourceId = await this.attachmentProvider.getDecryptResourceId(metadata);
-        }
-
-        // Generate a fresh session key pair and fetch the Lit blockhash nonce
-        const sessionKeyPair = generateSessionKeyPair();
-        const litClient = await getLitClient();
-        const { latestBlockhash } = await litClient.getContext();
-        const sessionKeyUri = `${SIWE_URI_PREFIX.SESSION_KEY}${sessionKeyPair.publicKey}`;
-
-        const message = await buildSiweMessage({
-          domain,
-          sessionKeyUri,
-          nonce: latestBlockhash,
-          address: accountAddress,
-          chainId: scaffoldConfig.targetNetworks[0]?.id ?? 1,
-          resourceId,
-        });
-
-        // Encrypt the session key pair into an opaque token (stateless)
-        const opaqueToken = encryptSessionToken(sessionKeyPair);
-
-        res.status(401).json({
-          error: "Signature required",
-          message,
-          opaqueToken,
-          siwe: { domain, resourceId, chainId: scaffoldConfig.targetNetworks[0]?.id ?? 1 },
-        });
+        res.status(401).json(siweChallengeResponse);
         return;
       } catch (error) {
         return handleAttachmentError(error, res);
@@ -90,21 +75,15 @@ class IpAttachmentHandler {
 
     // ── Has Authorization header → verify SIWE and decrypt ───────────
     try {
-      const attachmentMetadata = await this.attachmentProvider.getAttachmentMetadata(tokenId, attachmentId);
+      const domain = getExpectedDomain(req);
+      const { authSig, opaqueToken } = await parseAndVerifySiweAuth(authorization, domain, accountAddress);
 
-      let decryptAuth: { authSig: AuthSig; sessionKeyPair: SessionKeyPair; domain: string } | undefined;
+      // Recover the session key pair from the opaque token
+      const sessionKeyPair = decryptSessionToken(opaqueToken);
 
-      if (attachmentMetadata.type === "ENCRYPTED") {
-        const domain = getExpectedDomain(req);
-        const { authSig, opaqueToken } = await parseAndVerifySiweAuth(authorization, domain, accountAddress);
+      const decryptAuth: DecryptAuth = { authSig, sessionKeyPair, domain };
 
-        // Recover the session key pair from the opaque token
-        const sessionKeyPair = decryptSessionToken(opaqueToken);
-
-        decryptAuth = { authSig, sessionKeyPair, domain };
-      }
-
-      const attachmentResult = await this.attachmentProvider.getAttachment(attachmentMetadata.uri, decryptAuth);
+      const attachmentResult = await this.attachmentProvider.getAttachment(metadata.uri, decryptAuth);
 
       res.setHeader("Content-Type", attachmentResult.contentType);
       res.setHeader("Content-Disposition", `attachment; filename="attachment-${attachmentId}"`);

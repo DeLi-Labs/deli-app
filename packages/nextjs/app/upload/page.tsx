@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Base64 } from "js-base64";
 import type { NextPage } from "next";
 import toast from "react-hot-toast";
+import { zeroAddress } from "viem";
+import { useAccount } from "wagmi";
+import { getPublicClient } from "wagmi/actions";
+import deployedContracts from "~~/contracts/deployedContracts";
+import { useDeployedContractInfo, useScaffoldWriteContract, useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { createCipherGateway } from "~~/services/gateway/cipher/CipherGatewayFactory";
+import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 import { getAuthToken } from "~~/utils/auth";
 
 type AttachmentType = "ENCRYPTED" | "PLAIN";
@@ -27,6 +33,11 @@ type FormData = {
 };
 
 const UploadPage: NextPage = () => {
+  const { address } = useAccount();
+  const { targetNetwork } = useTargetNetwork();
+  const { data: campaignManagerContract } = useDeployedContractInfo({ contractName: "CampaignManager" });
+  const { writeContractAsync: writeIpErc721, isPending: isIpErc721Pending } = useScaffoldWriteContract("IPERC721");
+
   const [formData, setFormData] = useState<FormData>({
     name: "",
     description: "",
@@ -122,6 +133,11 @@ const UploadPage: NextPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!address) {
+      toast.error("Please connect your wallet");
+      return;
+    }
 
     if (!formData.image) {
       toast.error("Please select an image");
@@ -235,8 +251,54 @@ const UploadPage: NextPage = () => {
         throw new Error(result.error || "Failed to upload IP metadata");
       }
 
-      console.log("Upload successful! Metadata URI:", result.uri);
-      toast.success(`Upload successful! Metadata URI: ${result.uri}`, { id: "upload" });
+      const metadataUri = result.uri as string;
+      toast.success("Metadata uploaded", { id: "upload" });
+
+      if (!campaignManagerContract?.address) {
+        throw new Error("CampaignManager contract address not found");
+      }
+
+      const chainId = targetNetwork.id;
+      const chainContracts = (
+        deployedContracts as Record<number, Record<string, { address: string; abi: readonly unknown[] }>>
+      )[chainId];
+      const ipErc721Contract = chainContracts?.IPERC721;
+      if (!ipErc721Contract) {
+        throw new Error("IPERC721 contract not found");
+      }
+
+      const publicClient = getPublicClient(wagmiConfig);
+      if (!publicClient) {
+        throw new Error("Could not get public client");
+      }
+
+      toast.loading("Minting IP NFT...", { id: "mint" });
+      const nextTokenId = await publicClient.readContract({
+        address: ipErc721Contract.address as `0x${string}`,
+        abi: ipErc721Contract.abi,
+        functionName: "_nextTokenId",
+      });
+
+      const mintHash = await writeIpErc721({
+        functionName: "mint",
+        args: [metadataUri, zeroAddress as `0x${string}`, 0n],
+      });
+
+      if (!mintHash) {
+        throw new Error("Mint transaction failed");
+      }
+
+      await publicClient.waitForTransactionReceipt({ hash: mintHash });
+      const tokenId = nextTokenId as bigint;
+      toast.success(`IP NFT minted (token ID ${tokenId})`, { id: "mint" });
+
+      toast.loading("Staking NFT to campaign manager...", { id: "stake" });
+      await writeIpErc721({
+        functionName: "safeTransferFrom",
+        args: [address, campaignManagerContract.address, tokenId],
+      } as Parameters<typeof writeIpErc721>[0]);
+
+      toast.success("IP NFT staked to campaign manager", { id: "stake" });
 
       // Reset form
       setFormData({
@@ -250,8 +312,11 @@ const UploadPage: NextPage = () => {
         imageInputRef.current.value = "";
       }
     } catch (error) {
-      console.error("Error uploading IP metadata:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to upload IP metadata", { id: "upload" });
+      console.error("Error:", error);
+      const message = error instanceof Error ? error.message : "Failed to upload IP metadata";
+      toast.error(message, { id: "upload" });
+      toast.error(message, { id: "mint" });
+      toast.error(message, { id: "stake" });
     }
   };
 
@@ -374,8 +439,8 @@ const UploadPage: NextPage = () => {
 
           {/* Submit Button */}
           <div className="form-control w-full mt-8">
-            <button type="submit" className="btn btn-primary w-full">
-              Submit
+            <button type="submit" className="btn btn-primary w-full" disabled={isIpErc721Pending}>
+              {isIpErc721Pending ? "Processing..." : "Upload, mint & stake"}
             </button>
           </div>
         </form>

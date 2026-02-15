@@ -1,5 +1,7 @@
+import type { AuthSig } from "@lit-protocol/types";
 import formidable from "formidable";
 import type { Address, TypedData } from "viem";
+import { SessionKeyPair } from "~~/utils/lit/client";
 
 export type IP = {
   tokenId: number;
@@ -189,4 +191,16 @@ export type PaymentInfoDto = {
   maxFeeBps: number; // uint16
   feeReceiver: Address;
   salt: string; // uint256 as string
+};
+
+export type SIWEChallengeResponse = {
+  message: string;
+  opaqueToken: string;
+  siwe: string;
+};
+
+export type DecryptAuth = {
+  authSig: AuthSig;
+  sessionKeyPair: SessionKeyPair;
+  domain: string;
 };

@@ -9,7 +9,7 @@ import { createIndexerGateway } from "~~/services/gateway/indexer/IndexerGateway
 import { IIndexerGateway } from "~~/services/gateway/indexer/indexer";
 import { createStorageGateway } from "~~/services/gateway/storage/StorageGatewayFactory";
 import { IStorageGateway } from "~~/services/gateway/storage/storage";
-import { Attachment } from "~~/types/liquidip";
+import { Attachment, DecryptAuth } from "~~/types/liquidip";
 import { computeDecryptResourceId } from "~~/utils/auth";
 import type { SessionKeyPair } from "~~/utils/lit/client";
 import { NotFoundError } from "~~/utils/scaffold-eth/errors";
@@ -55,10 +55,7 @@ class AttachmentProvider {
     );
   }
 
-  async getAttachment(
-    uri: string,
-    decryptAuth?: { authSig: AuthSig; sessionKeyPair: SessionKeyPair; domain?: string },
-  ): Promise<AttachmentResult> {
+  async getAttachment(uri: string, decryptAuth?: DecryptAuth): Promise<AttachmentResult> {
     const retrieveResult = await this.storageGateway.retrieve(uri);
 
     if (!decryptAuth) {

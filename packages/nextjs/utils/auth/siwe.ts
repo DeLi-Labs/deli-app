@@ -12,10 +12,17 @@
  * (which internally uses siwe@2.x) to produce SIWE messages in the exact format
  * that Lit network nodes expect. The top-level siwe@3.x is only used for parsing.
  */
+import { getLitClient } from "../lit/client";
+import { getExpectedDomain } from "../scaffold-eth/apiUtils";
+import { encryptSessionToken } from "./sessionToken";
+import { generateSessionKeyPair } from "@lit-protocol/auth";
 import { LitAccessControlConditionResource, createSiweMessageWithResources } from "@lit-protocol/auth-helpers";
 import { LIT_ABILITY, SIWE_URI_PREFIX } from "@lit-protocol/constants";
 import type { AuthSig } from "@lit-protocol/types";
+import { IncomingMessage } from "http";
 import { SiweMessage } from "siwe";
+import scaffoldConfig from "~~/scaffold.config";
+import { SIWEChallengeResponse } from "~~/types/liquidip";
 import { BadRequestError, UnauthorizedError } from "~~/utils/scaffold-eth/errors";
 
 export type SiweAuthData = {
@@ -261,5 +268,38 @@ export async function parseAndVerifySiweAuth(
   return {
     authSig: siweToAuthSig(authData.message, authData.signature, expectedAddress),
     opaqueToken: authData.opaqueToken,
+  };
+}
+
+export async function buildSiweChallengeResponse(
+  req: IncomingMessage,
+  accountAddress: string,
+  decryptResourceId: string,
+): Promise<SIWEChallengeResponse> {
+  const domain = getExpectedDomain(req);
+
+  // Generate a fresh session key pair and fetch the Lit blockhash nonce
+  const sessionKeyPair = generateSessionKeyPair();
+  const litClient = await getLitClient();
+  const { latestBlockhash } = await litClient.getContext();
+  const sessionKeyUri = `${SIWE_URI_PREFIX.SESSION_KEY}${sessionKeyPair.publicKey}`;
+
+  const siweMessage = await buildSiweMessage({
+    domain,
+    sessionKeyUri,
+    nonce: latestBlockhash,
+    address: accountAddress,
+    chainId: scaffoldConfig.targetNetworks[0]?.id ?? 1,
+    resourceId: decryptResourceId,
+  });
+
+  // Encrypt the session key pair into an opaque token (stateless)
+  const opaqueToken = encryptSessionToken(sessionKeyPair);
+
+  return {
+    message:
+      "Sign with Ethereum to access this private patent data. Provide authorization data in Authorization header in form of base64-encoded JSON with { message, signature, opaqueToken }.",
+    opaqueToken,
+    siwe: siweMessage,
   };
 }
