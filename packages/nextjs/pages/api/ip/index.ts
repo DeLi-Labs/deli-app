@@ -27,6 +27,7 @@ class IpHandler {
     return ipList;
   }
 
+  // TODO: implmenta validation of lit authentication token
   @Post()
   async uploadIpMetadata(@Req() req: IncomingMessage) {
     const parseResult = await parseFormData(req);

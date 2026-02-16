@@ -1,3 +1,5 @@
+import { createRainbowKitWallet } from "./lit/wallet/RainbowKitWalletFactory";
+import { RainbowKitWalletType } from "./lit/wallet/types";
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 import {
   baseAccount,
@@ -14,6 +16,7 @@ import scaffoldConfig from "~~/scaffold.config";
 const { onlyLocalBurnerWallet, targetNetworks } = scaffoldConfig;
 
 const wallets = [
+  createRainbowKitWallet(RainbowKitWalletType.GOOGLE),
   metaMaskWallet,
   walletConnectWallet,
   ledgerWallet,

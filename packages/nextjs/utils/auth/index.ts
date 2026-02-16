@@ -28,7 +28,7 @@ const AUTH_EXPIRY_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 export type PKPInfo = {
   pubkey: string;
-  ethAddress?: string;
+  ethAddress: `0x${string}`;
   txHash?: string;
   queryableAt?: Date;
 };
@@ -38,7 +38,9 @@ export type PKPInfo = {
  * Returns full AuthData object
  */
 export const getStoredAuthData = (): AuthData | null => {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined") {
+    return null;
+  }
 
   try {
     const storedAuthData = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -179,6 +181,7 @@ export const getPKP = async (authData: AuthData, litClient: any): Promise<PKPInf
   const mintResult = await litClient.authService.mintWithAuth({
     authData: authData,
     authServiceBaseUrl: process.env.NEXT_PUBLIC_LIT_AUTH_SERVICE_URL || "https://naga-dev-auth-service.getlit.dev",
+    scopes: ["sign-anything", "personal-sign"],
   });
 
   console.log("PKP minted successfully:", mintResult);
