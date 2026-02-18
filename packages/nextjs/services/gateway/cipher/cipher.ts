@@ -15,6 +15,8 @@ export type EncryptableData = string | Uint8Array | File | Blob;
 export type DecryptionAuth = {
   authSig: AuthSig;
   sessionKeyPair: SessionKeyPair;
+  paymentInfoHash: string;
+  requiredAuthorizedAmount: number;
 };
 
 /**
@@ -35,7 +37,6 @@ export type EncryptOptions = {
 export type DecryptOptions = {
   /**
    * Authentication required for decryption
-   * Must provide authContext
    */
   auth: DecryptionAuth;
 

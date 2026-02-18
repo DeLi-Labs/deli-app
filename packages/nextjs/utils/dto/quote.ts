@@ -68,3 +68,25 @@ export class Permit2RequestDTO {
 
 // Keep QuoteRequestDTO as an alias for backward compatibility
 export class QuoteRequestDTO extends Permit2RequestDTO {}
+
+// DTO for attachment endpoint POST body: address in body, optional payment info (like prepareAuthorize)
+export class AttachmentRequestDTO {
+  @IsOptional()
+  @IsString()
+  @Matches(/^0x[a-fA-F0-9]{40}$/, { message: "address must be a valid Ethereum address" })
+  address?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @IsInt({ message: "Amount must be an integer" })
+  @Min(1, { message: "Amount must be a positive integer" })
+  amount?: number;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PermitDTO)
+  permit?: PermitDTO;
+
+  @IsOptional()
+  paymentInfo?: Record<string, unknown>;
+}

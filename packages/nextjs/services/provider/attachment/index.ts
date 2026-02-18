@@ -55,7 +55,12 @@ class AttachmentProvider {
     );
   }
 
-  async getAttachment(uri: string, decryptAuth?: DecryptAuth): Promise<AttachmentResult> {
+  async getAttachment(
+    uri: string,
+    requiredAuthorizedAmount?: number,
+    paymentInfoHash?: string,
+    decryptAuth?: DecryptAuth,
+  ): Promise<AttachmentResult> {
     const retrieveResult = await this.storageGateway.retrieve(uri);
 
     if (!decryptAuth) {
@@ -71,6 +76,8 @@ class AttachmentProvider {
       auth: {
         authSig: decryptAuth.authSig,
         sessionKeyPair: decryptAuth.sessionKeyPair,
+        paymentInfoHash: paymentInfoHash ?? "",
+        requiredAuthorizedAmount: requiredAuthorizedAmount ?? 0,
       },
       domain: decryptAuth.domain,
     });

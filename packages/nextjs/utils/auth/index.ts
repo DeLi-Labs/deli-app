@@ -17,6 +17,7 @@ import { EoaAuthContextSchema } from "@lit-protocol/schemas";
 import type { AccessControlConditions, AuthSig } from "@lit-protocol/types";
 import { uint8arrayToString } from "@lit-protocol/uint8arrays";
 import { getAddress, keccak256, stringToBytes } from "viem";
+import { encodeAbiParameters } from "viem";
 import type { z } from "zod";
 import type { SessionKeyPair } from "~~/utils/lit/client";
 
@@ -25,6 +26,12 @@ const AUTH_EXPIRY_KEY = "lit_google_auth_expiry";
 
 // Auth data expires after 1 hour (Google OAuth tokens typically last 1 hour)
 const AUTH_EXPIRY_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+
+const PAYMENT_INFO_TYPEHASH = keccak256(
+  new TextEncoder().encode(
+    "PaymentInfo(address operator,address payer,address receiver,address token,uint120 maxAmount,uint48 preApprovalExpiry,uint48 authorizationExpiry,uint48 refundExpiry,uint16 minFeeBps,uint16 maxFeeBps,address feeReceiver,uint256 salt)",
+  ),
+);
 
 export type PKPInfo = {
   pubkey: string;
@@ -263,4 +270,40 @@ export async function buildAuthContextForDecrypt(
     sessionKeyPair,
     authConfig,
   });
+}
+
+export async function computePaymentInfoHash(paymentInfo: Record<string, unknown>): Promise<string> {
+  const paymentInfoEncoded = encodeAbiParameters(
+    [
+      { type: "bytes32" }, // PAYMENT_INFO_TYPEHASH
+      { type: "address" }, // operator
+      { type: "address" }, // payer
+      { type: "address" }, // receiver
+      { type: "address" }, // token
+      { type: "uint120" }, // maxAmount
+      { type: "uint48" }, // preApprovalExpiry
+      { type: "uint48" }, // authorizationExpiry
+      { type: "uint48" }, // refundExpiry
+      { type: "uint16" }, // minFeeBps
+      { type: "uint16" }, // maxFeeBps
+      { type: "address" }, // feeReceiver
+      { type: "uint256" }, // salt
+    ],
+    [
+      PAYMENT_INFO_TYPEHASH,
+      paymentInfo.operator as string,
+      paymentInfo.payer as string,
+      paymentInfo.receiver as string,
+      paymentInfo.token as string,
+      BigInt(paymentInfo.maxAmount as string),
+      Number(paymentInfo.preApprovalExpiry as string),
+      Number(paymentInfo.authorizationExpiry as string),
+      Number(paymentInfo.refundExpiry as string),
+      paymentInfo.minFeeBps as number,
+      paymentInfo.maxFeeBps as number,
+      paymentInfo.feeReceiver as string,
+      BigInt(paymentInfo.salt as string),
+    ],
+  );
+  return keccak256(paymentInfoEncoded);
 }
