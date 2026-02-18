@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import "./DeployHelpers.s.sol";
+
 // Note: We use vm.deployCode() to deploy from artifacts instead of importing source files
 // This allows this script to use Solidity 0.8.28 while avoiding conflicts with other contracts
 
@@ -58,8 +59,7 @@ contract DeployAuthCaptureEscrow is ScaffoldETHDeploy {
         // Deploy ERC3009PaymentCollector
         bytes memory erc3009Args = abi.encode(authCaptureEscrow, MULTICALL3);
         erc3009PaymentCollector = vm.deployCode(
-            "lib/commerce-payments/out/ERC3009PaymentCollector.sol/ERC3009PaymentCollector.json",
-            erc3009Args
+            "lib/commerce-payments/out/ERC3009PaymentCollector.sol/ERC3009PaymentCollector.json", erc3009Args
         );
         console.log("ERC3009PaymentCollector deployed at:", erc3009PaymentCollector);
         deployments.push(Deployment("ERC3009PaymentCollector", erc3009PaymentCollector));
@@ -76,8 +76,7 @@ contract DeployAuthCaptureEscrow is ScaffoldETHDeploy {
         // Deploy Permit2PaymentCollector
         bytes memory permit2Args = abi.encode(authCaptureEscrow, PERMIT2, MULTICALL3);
         permit2PaymentCollector = vm.deployCode(
-            "lib/commerce-payments/out/Permit2PaymentCollector.sol/Permit2PaymentCollector.json",
-            permit2Args
+            "lib/commerce-payments/out/Permit2PaymentCollector.sol/Permit2PaymentCollector.json", permit2Args
         );
         console.log("Permit2PaymentCollector deployed at:", permit2PaymentCollector);
         deployments.push(Deployment("Permit2PaymentCollector", permit2PaymentCollector));
@@ -85,8 +84,7 @@ contract DeployAuthCaptureEscrow is ScaffoldETHDeploy {
         // Deploy OperatorRefundCollector
         bytes memory refundArgs = abi.encode(authCaptureEscrow);
         operatorRefundCollector = vm.deployCode(
-            "lib/commerce-payments/out/OperatorRefundCollector.sol/OperatorRefundCollector.json",
-            refundArgs
+            "lib/commerce-payments/out/OperatorRefundCollector.sol/OperatorRefundCollector.json", refundArgs
         );
         console.log("OperatorRefundCollector deployed at:", operatorRefundCollector);
         deployments.push(Deployment("OperatorRefundCollector", operatorRefundCollector));

@@ -49,10 +49,5 @@ interface IAuthCaptureEscrow {
     /// @param amount Amount to capture
     /// @param feeBps Fee percentage to apply (must be within min/max range)
     /// @param feeReceiver Address to receive fees
-    function capture(
-        PaymentInfo calldata paymentInfo,
-        uint256 amount,
-        uint16 feeBps,
-        address feeReceiver
-    ) external;
+    function capture(PaymentInfo calldata paymentInfo, uint256 amount, uint16 feeBps, address feeReceiver) external;
 }

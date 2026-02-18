@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {IAuthCaptureEscrow} from "./IAuthCaptureEscrow.sol";
+import { IAuthCaptureEscrow } from "./IAuthCaptureEscrow.sol";
 
 /// @title IPreApprovalPaymentCollector
 /// @notice Interface for PreApprovalPaymentCollector contract to avoid Solidity version conflicts

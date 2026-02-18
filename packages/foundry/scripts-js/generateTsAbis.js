@@ -243,16 +243,18 @@ function main() {
     if (!allGeneratedContracts[chainId]) {
       allGeneratedContracts[chainId] = {};
     }
-    
+
     Object.entries(deploymentMap).forEach(([address, contractName]) => {
       // Skip networkName entry
       if (contractName === "networkName") return;
-      
+
       // Check if this contract is already in allGeneratedContracts
-      const existingContract = Object.values(allGeneratedContracts[chainId]).find(
+      const existingContract = Object.values(
+        allGeneratedContracts[chainId]
+      ).find(
         (contract) => contract.address?.toLowerCase() === address.toLowerCase()
       );
-      
+
       if (!existingContract) {
         // Try to find artifact for this contract
         const artifact = getArtifactOfContract(contractName);

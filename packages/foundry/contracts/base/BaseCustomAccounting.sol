@@ -4,19 +4,19 @@
 pragma solidity ^0.8.26;
 
 // External imports
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {IUnlockCallback} from "@uniswap/v4-core/src/interfaces/callback/IUnlockCallback.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
-import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
-import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
-import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
+import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import { IUnlockCallback } from "@uniswap/v4-core/src/interfaces/callback/IUnlockCallback.sol";
+import { Currency, CurrencyLibrary } from "@uniswap/v4-core/src/types/Currency.sol";
+import { BalanceDelta } from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import { StateLibrary } from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import { PoolId } from "@uniswap/v4-core/src/types/PoolId.sol";
+import { ModifyLiquidityParams } from "@uniswap/v4-core/src/types/PoolOperation.sol";
 // Internal imports
-import {IHookEvents} from "uniswap-hooks/interfaces/IHookEvents.sol";
-import {BaseHook} from "uniswap-hooks/base/BaseHook.sol";
-import {CurrencySettler} from "uniswap-hooks/utils/CurrencySettler.sol";
+import { IHookEvents } from "uniswap-hooks/interfaces/IHookEvents.sol";
+import { BaseHook } from "uniswap-hooks/base/BaseHook.sol";
+import { CurrencySettler } from "uniswap-hooks/utils/CurrencySettler.sol";
 
 /**
  * @dev Base implementation for custom accounting and hook-owned liquidity.
@@ -310,10 +310,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
      * @param data The encoded `CallbackData` struct, including the pool key, sender and the parameters for the liquidity modification.
      * @param feesAccrued The balance delta of the fees generated in the liquidity range.
      */
-    function _handleAccruedFees(CallbackData memory data, BalanceDelta, BalanceDelta feesAccrued)
-        internal
-        virtual
-    {
+    function _handleAccruedFees(CallbackData memory data, BalanceDelta, BalanceDelta feesAccrued) internal virtual {
         PoolKey memory key = data.key;
 
         // Send any accrued fees to the sender

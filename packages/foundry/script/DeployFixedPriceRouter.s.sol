@@ -2,20 +2,20 @@
 pragma solidity ^0.8.26;
 
 import "./DeployHelpers.s.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
-import {HookMiner} from "@v4-periphery/utils/HookMiner.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import { IHooks } from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import { IAllowanceTransfer } from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import { HookMiner } from "@v4-periphery/utils/HookMiner.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-import {FixedPriceLicenseHook} from "../contracts/fixed/FixedPriceLicenseHook.sol";
-import {FixedPriceSwapRouter} from "../contracts/fixed/FixedPriceSwapRouter.sol";
-import {CampaignManager} from "../contracts/fixed/CampaignManager.sol";
-import {IPERC721} from "../contracts/IPERC721.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IAuthCaptureEscrow} from "../contracts/interfaces/IAuthCaptureEscrow.sol";
+import { FixedPriceLicenseHook } from "../contracts/fixed/FixedPriceLicenseHook.sol";
+import { FixedPriceSwapRouter } from "../contracts/fixed/FixedPriceSwapRouter.sol";
+import { CampaignManager } from "../contracts/fixed/CampaignManager.sol";
+import { IPERC721 } from "../contracts/IPERC721.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IAuthCaptureEscrow } from "../contracts/interfaces/IAuthCaptureEscrow.sol";
 
 /// @dev Mock ERC20 for numeraire token
 contract MockNumeraire is ERC20 {
@@ -39,7 +39,6 @@ contract MockNumeraire is ERC20 {
  *   anvil --fork-url https://eth-mainnet.g.alchemy.com/v2/<API_KEY>
  */
 contract DeployFixedPriceRouter is ScaffoldETHDeploy {
-
     // CREATE2 Deployer Proxy address used by forge script
     address constant CREATE2_DEPLOYER = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
 
@@ -116,26 +115,19 @@ contract DeployFixedPriceRouter is ScaffoldETHDeploy {
 
         // Hook flags from BaseCustomCurve.getHookPermissions()
         uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG |
-            Hooks.BEFORE_ADD_LIQUIDITY_FLAG |
-            Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG |
-            Hooks.BEFORE_SWAP_FLAG |
-            Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
+                | Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
 
         // Find salt for hook address with correct flags
         bytes memory constructorArgs = abi.encode(address(poolManager), deployer, IERC721(address(patentNFT)));
-        (address hookAddress, bytes32 salt) = HookMiner.find(
-            CREATE2_DEPLOYER,
-            flags,
-            type(FixedPriceLicenseHook).creationCode,
-            constructorArgs
-        );
+        (address hookAddress, bytes32 salt) =
+            HookMiner.find(CREATE2_DEPLOYER, flags, type(FixedPriceLicenseHook).creationCode, constructorArgs);
 
         console.log("Found hook address:", hookAddress);
         console.log("Using salt:", vm.toString(salt));
 
-        hook = new FixedPriceLicenseHook{salt: salt}(poolManager, deployer, IERC721(address(patentNFT)));
+        hook = new FixedPriceLicenseHook{ salt: salt }(poolManager, deployer, IERC721(address(patentNFT)));
         require(address(hook) == hookAddress, "Hook address mismatch");
 
         console.log("FixedPriceLicenseHook deployed at:", address(hook));
@@ -173,7 +165,6 @@ contract DeployFixedPriceRouter is ScaffoldETHDeploy {
         console.log("CampaignManager deployed at:", address(campaignManager));
         deployments.push(Deployment("CampaignManager", address(campaignManager)));
     }
-
 
     function _logSummary() internal view {
         console.log("");

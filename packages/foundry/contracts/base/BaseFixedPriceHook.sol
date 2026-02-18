@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {BaseCustomCurve} from "../base/BaseCustomCurve.sol";
-import {BaseHook} from "uniswap-hooks/base/BaseHook.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
-import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {PoolId} from "@v4-core/types/PoolId.sol";
-import {PoolKey} from "@v4-core/types/PoolKey.sol";
-import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {CurrencySettler} from "uniswap-hooks/utils/CurrencySettler.sol";
+import { BaseCustomCurve } from "../base/BaseCustomCurve.sol";
+import { BaseHook } from "uniswap-hooks/base/BaseHook.sol";
+import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import { SwapParams } from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import { BalanceDelta } from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { PoolId } from "@v4-core/types/PoolId.sol";
+import { PoolKey } from "@v4-core/types/PoolKey.sol";
+import { Currency } from "@uniswap/v4-core/src/types/Currency.sol";
+import { CurrencySettler } from "uniswap-hooks/utils/CurrencySettler.sol";
 
 /**
  * @title BaseLicenseHook
@@ -90,10 +90,7 @@ abstract contract BaseFixedPriceHook is BaseCustomCurve, Ownable {
      * @param _poolManager The Uniswap V4 pool manager
      * @param _owner The owner of the contract
      */
-    constructor(
-        IPoolManager _poolManager,
-        address _owner
-    ) BaseHook(_poolManager) Ownable(_owner) {}
+    constructor(IPoolManager _poolManager, address _owner) BaseHook(_poolManager) Ownable(_owner) { }
 
     /*//////////////////////////////////////////////////////////////
                             ADMIN FUNCTIONS
@@ -124,12 +121,11 @@ abstract contract BaseFixedPriceHook is BaseCustomCurve, Ownable {
      */
     function deposit(Currency currency, uint256 amount) external {
         poolManager.unlock(
-            abi.encode(DepositCallbackData({
-                callbackType: CALLBACK_DEPOSIT,
-                currency: currency,
-                sender: msg.sender,
-                amount: amount
-            }))
+            abi.encode(
+                DepositCallbackData({
+                    callbackType: CALLBACK_DEPOSIT, currency: currency, sender: msg.sender, amount: amount
+                })
+            )
         );
     }
 
@@ -142,24 +138,18 @@ abstract contract BaseFixedPriceHook is BaseCustomCurve, Ownable {
      */
     function withdraw(Currency currency, uint256 amount, address recipient) external onlyOwner {
         poolManager.unlock(
-            abi.encode(DepositCallbackData({
-                callbackType: CALLBACK_WITHDRAW,
-                currency: currency,
-                sender: recipient,
-                amount: amount
-            }))
+            abi.encode(
+                DepositCallbackData({
+                    callbackType: CALLBACK_WITHDRAW, currency: currency, sender: recipient, amount: amount
+                })
+            )
         );
     }
 
     /**
      * @dev Override unlockCallback to handle deposit/withdraw operations
      */
-    function unlockCallback(bytes calldata rawData)
-        public
-        override
-        onlyPoolManager
-        returns (bytes memory)
-    {
+    function unlockCallback(bytes calldata rawData) public override onlyPoolManager returns (bytes memory) {
         // Try to decode as DepositCallbackData first
         // Check if this is a deposit/withdraw callback by checking the first byte pattern
         if (rawData.length >= 32) {
@@ -193,14 +183,15 @@ abstract contract BaseFixedPriceHook is BaseCustomCurve, Ownable {
                            SWAP LOGIC (CORE)
     //////////////////////////////////////////////////////////////*/
 
-    function _getUnspecifiedAmount(
-        PoolKey memory key,
-        SwapParams calldata params
-    ) internal view virtual override returns (uint256 unspecifiedAmount) {
+    function _getUnspecifiedAmount(PoolKey memory key, SwapParams calldata params)
+        internal
+        view
+        virtual
+        override
+        returns (uint256 unspecifiedAmount)
+    {
         bool exactInput = params.amountSpecified < 0;
-        uint256 specifiedAmount = exactInput
-            ? uint256(-params.amountSpecified)
-            : uint256(params.amountSpecified);
+        uint256 specifiedAmount = exactInput ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
 
         uint256 price = prices[key.toId()];
 
@@ -239,12 +230,11 @@ abstract contract BaseFixedPriceHook is BaseCustomCurve, Ownable {
      * @param zeroForOne True if swapping token0 for token1
      */
 
-    function getQuote(
-        PoolId id,
-        uint256 amount,
-        bool zeroForOne,
-        bool exactOutput
-    ) external view returns (uint256 result) {
+    function getQuote(PoolId id, uint256 amount, bool zeroForOne, bool exactOutput)
+        external
+        view
+        returns (uint256 result)
+    {
         uint256 price = prices[id];
         if (exactOutput) {
             // amount = amountOut, result = amountIn (round up)
@@ -267,9 +257,7 @@ abstract contract BaseFixedPriceHook is BaseCustomCurve, Ownable {
                     LIQUIDITY MANAGEMENT (NOT IMPLEMENTED)
     //////////////////////////////////////////////////////////////*/
 
-    function _getAmountIn(
-        AddLiquidityParams memory params
-    )
+    function _getAmountIn(AddLiquidityParams memory params)
         internal
         view
         override
@@ -278,9 +266,7 @@ abstract contract BaseFixedPriceHook is BaseCustomCurve, Ownable {
         revert NotImplemented();
     }
 
-    function _getAmountOut(
-        RemoveLiquidityParams memory params
-    )
+    function _getAmountOut(RemoveLiquidityParams memory params)
         internal
         view
         override
@@ -289,12 +275,10 @@ abstract contract BaseFixedPriceHook is BaseCustomCurve, Ownable {
         revert NotImplemented();
     }
 
-    function _mint(
-        AddLiquidityParams memory params,
-        BalanceDelta callerDelta,
-        BalanceDelta feesAccrued,
-        uint256 shares
-    ) internal override {
+    function _mint(AddLiquidityParams memory params, BalanceDelta callerDelta, BalanceDelta feesAccrued, uint256 shares)
+        internal
+        override
+    {
         revert NotImplemented();
     }
 
@@ -307,10 +291,12 @@ abstract contract BaseFixedPriceHook is BaseCustomCurve, Ownable {
         revert NotImplemented();
     }
 
-    function _getSwapFeeAmount(
-        SwapParams calldata params,
-        uint256 unspecifiedAmount
-    ) internal view override returns (uint256 swapFeeAmount) {
+    function _getSwapFeeAmount(SwapParams calldata params, uint256 unspecifiedAmount)
+        internal
+        view
+        override
+        returns (uint256 swapFeeAmount)
+    {
         return 0;
     }
 }

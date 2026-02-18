@@ -2,8 +2,8 @@
 pragma solidity ^0.8.26;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /// @title Metadata
 /// @notice Dynamic metadata of the IP NFT. It can and should be updated by the IP owner.
@@ -27,13 +27,11 @@ contract IPERC721 is ERC721URIStorage, Ownable {
 
     /// @notice Deploys the Patent ERC721.
     /// @param _owner Address that will own this contract.
-    constructor(
-        address _owner
-    ) ERC721("IP NFT", "IPNFT") Ownable(_owner) {
+    constructor(address _owner) ERC721("IP NFT", "IPNFT") Ownable(_owner) {
         _nextTokenId = 1;
     }
 
-    /// @notice Mints a new patent NFT with the given static metadata URI. 
+    /// @notice Mints a new patent NFT with the given static metadata URI.
     /// @dev Should accept and validate proof that msg.sender completed KYC and ownership of IP is verified. TODO: add proof validation
     /// @dev May accept params of underlying asset (in case if IP is derived from other protocol)
     /// @dev We validate if the underlying asset is owned by the msg.sender assuming that asset protocol is trusted.

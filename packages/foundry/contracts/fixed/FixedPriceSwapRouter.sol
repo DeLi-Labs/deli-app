@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {V4Router} from "@v4-periphery/V4Router.sol";
-import {IV4Router} from "@v4-periphery/interfaces/IV4Router.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {ReentrancyLock} from "@v4-periphery/base/ReentrancyLock.sol";
-import {Permit2Forwarder} from "@v4-periphery/base/Permit2Forwarder.sol";
-import {Actions} from "@v4-periphery/libraries/Actions.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {IERC20Minimal} from "@uniswap/v4-core/src/interfaces/external/IERC20Minimal.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
-import {FixedPriceLicenseHook} from "./FixedPriceLicenseHook.sol";
+import { V4Router } from "@v4-periphery/V4Router.sol";
+import { IV4Router } from "@v4-periphery/interfaces/IV4Router.sol";
+import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import { ReentrancyLock } from "@v4-periphery/base/ReentrancyLock.sol";
+import { Permit2Forwarder } from "@v4-periphery/base/Permit2Forwarder.sol";
+import { Actions } from "@v4-periphery/libraries/Actions.sol";
+import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
+import { Currency } from "@uniswap/v4-core/src/types/Currency.sol";
+import { IERC20Minimal } from "@uniswap/v4-core/src/interfaces/external/IERC20Minimal.sol";
+import { IAllowanceTransfer } from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import { FixedPriceLicenseHook } from "./FixedPriceLicenseHook.sol";
 
 contract FixedPriceSwapRouter is V4Router, ReentrancyLock, Permit2Forwarder {
     error PoolHookMismatch(address expected, address actual);
@@ -19,11 +19,10 @@ contract FixedPriceSwapRouter is V4Router, ReentrancyLock, Permit2Forwarder {
 
     FixedPriceLicenseHook public immutable hook;
 
-    constructor(
-        IPoolManager _poolManager,
-        IAllowanceTransfer _permit2,
-        FixedPriceLicenseHook _hook
-    ) V4Router(_poolManager) Permit2Forwarder(_permit2) {
+    constructor(IPoolManager _poolManager, IAllowanceTransfer _permit2, FixedPriceLicenseHook _hook)
+        V4Router(_poolManager)
+        Permit2Forwarder(_permit2)
+    {
         hook = _hook;
     }
 
@@ -55,9 +54,7 @@ contract FixedPriceSwapRouter is V4Router, ReentrancyLock, Permit2Forwarder {
 
         // Encode actions: SWAP_EXACT_OUT_SINGLE, SETTLE_ALL, TAKE_ALL
         bytes memory actions = abi.encodePacked(
-            uint8(Actions.SWAP_EXACT_OUT_SINGLE),
-            uint8(Actions.SETTLE_ALL),
-            uint8(Actions.TAKE_ALL)
+            uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL)
         );
 
         // Encode params for each action
@@ -84,29 +81,17 @@ contract FixedPriceSwapRouter is V4Router, ReentrancyLock, Permit2Forwarder {
         poolManager.unlock(abi.encode(actions, params));
     }
 
-    function _pay(
-        Currency token,
-        address payer,
-        uint256 amount
-    ) internal override {
+    function _pay(Currency token, address payer, uint256 amount) internal override {
         if (payer == address(this)) {
             token.transfer(address(poolManager), amount);
         } else {
             address tokenAddress = Currency.unwrap(token);
             // Check if Permit2 is approved
-            uint256 allowance = IERC20Minimal(tokenAddress).allowance(
-                payer,
-                address(permit2)
-            );
+            uint256 allowance = IERC20Minimal(tokenAddress).allowance(payer, address(permit2));
             if (allowance < amount) {
                 revert Permit2NotApproved(payer, tokenAddress, amount, allowance);
             }
-            permit2.transferFrom(
-                payer,
-                address(poolManager),
-                uint160(amount),
-                tokenAddress
-            );
+            permit2.transferFrom(payer, address(poolManager), uint160(amount), tokenAddress);
         }
     }
 }

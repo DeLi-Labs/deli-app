@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
-import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
-import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
-import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { Test } from "forge-std/Test.sol";
+import { console } from "forge-std/console.sol";
+import { Deployers } from "@uniswap/v4-core/test/utils/Deployers.sol";
+import { IHooks } from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import { Currency, CurrencyLibrary } from "@uniswap/v4-core/src/types/Currency.sol";
+import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
+import { PoolId, PoolIdLibrary } from "@uniswap/v4-core/src/types/PoolId.sol";
+import { TickMath } from "@uniswap/v4-core/src/libraries/TickMath.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
-import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
+import { IAllowanceTransfer } from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import { DeployPermit2 } from "permit2/test/utils/DeployPermit2.sol";
 
-import {FixedPriceLicenseHook} from "../contracts/fixed/FixedPriceLicenseHook.sol";
-import {FixedPriceSwapRouter} from "../contracts/fixed/FixedPriceSwapRouter.sol";
-import {LicenseERC20, LicenseType} from "../contracts/LicenseERC20.sol";
-import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import { FixedPriceLicenseHook } from "../contracts/fixed/FixedPriceLicenseHook.sol";
+import { FixedPriceSwapRouter } from "../contracts/fixed/FixedPriceSwapRouter.sol";
+import { LicenseERC20, LicenseType } from "../contracts/LicenseERC20.sol";
+import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 /// @dev Mock ERC20 for numeraire
 contract MockERC20 is ERC20 {
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) { }
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
@@ -102,7 +102,7 @@ contract MockPatentNFT is IERC721 {
     function _transfer(address from, address to, uint256 tokenId) internal {
         require(_owners[tokenId] == from, "Transfer from incorrect owner");
         require(to != address(0), "Transfer to zero address");
-        
+
         _owners[tokenId] = to;
         _balances[from]--;
         _balances[to]++;
@@ -154,11 +154,8 @@ contract FixedPriceSwapRouterTest is Test, Deployers, DeployPermit2 {
         // beforeInitialize: true, beforeAddLiquidity: true, beforeRemoveLiquidity: true,
         // beforeSwap: true, beforeSwapReturnDelta: true
         uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG |
-            Hooks.BEFORE_ADD_LIQUIDITY_FLAG |
-            Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG |
-            Hooks.BEFORE_SWAP_FLAG |
-            Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
+                | Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
 
         // Deploy hook at the correct address using deployCodeTo
@@ -169,7 +166,7 @@ contract FixedPriceSwapRouterTest is Test, Deployers, DeployPermit2 {
             hookAddress
         );
         hook = FixedPriceLicenseHook(hookAddress);
-        
+
         // Initialize hook with a mock campaignManager address (use test contract as campaignManager for testing)
         // In production, this would be the actual CampaignManager address
         hook.initializeCampaign(poolId, PATENT_ID);
@@ -180,23 +177,19 @@ contract FixedPriceSwapRouterTest is Test, Deployers, DeployPermit2 {
         while (true) {
             address predicted = vm.computeCreate2Address(
                 salt,
-                keccak256(abi.encodePacked(
-                    type(LicenseERC20).creationCode,
-                    abi.encode(
-                        IERC721(address(patentNFT)),
-                        PATENT_ID,
-                        "ipfs://license-metadata",
-                        LicenseType.SingleUse
+                keccak256(
+                    abi.encodePacked(
+                        type(LicenseERC20).creationCode,
+                        abi.encode(
+                            IERC721(address(patentNFT)), PATENT_ID, "ipfs://license-metadata", LicenseType.SingleUse
+                        )
                     )
-                )),
+                ),
                 address(this)
             );
             if (address(numeraire) < predicted) {
-                licenseToken = new LicenseERC20{salt: salt}(
-                    IERC721(address(patentNFT)),
-                    PATENT_ID,
-                    "ipfs://license-metadata",
-                    LicenseType.SingleUse
+                licenseToken = new LicenseERC20{ salt: salt }(
+                    IERC721(address(patentNFT)), PATENT_ID, "ipfs://license-metadata", LicenseType.SingleUse
                 );
                 break;
             }
@@ -281,11 +274,9 @@ contract FixedPriceSwapRouterTest is Test, Deployers, DeployPermit2 {
         });
 
         vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSelector(
-            FixedPriceSwapRouter.PoolHookMismatch.selector,
-            address(hook),
-            address(0x1234)
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(FixedPriceSwapRouter.PoolHookMismatch.selector, address(hook), address(0x1234))
+        );
         router.swapExactOutputSingle(wrongPoolKey, 1, 1000e18, true, "");
     }
 
