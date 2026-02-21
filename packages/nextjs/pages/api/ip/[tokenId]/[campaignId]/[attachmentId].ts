@@ -23,16 +23,20 @@ import { AttachmentRequestDTO } from "~~/utils/dto/quote";
 import { computePaymentInfoHash } from "~~/utils/auth";
 import { createIndexerGateway } from "~~/services/gateway/indexer/IndexerGatewayFactory";
 import { IIndexerGateway } from "~~/services/gateway/indexer/indexer";
+import { createCaptureService, type ICaptureService } from "~~/services/capture";
+import type { PaymentInfoDto } from "~~/types/liquidip";
 
 // this api should return for specific attachment for specific ip in form of raw bytes requiring x402 payment in campaignId token
 
 class IpAttachmentHandler {
   private attachmentProvider: AttachmentProvider;
   private indexerGateway: IIndexerGateway;
+  private captureService: ICaptureService;
 
   constructor() {
     this.attachmentProvider = new AttachmentProvider();
     this.indexerGateway = createIndexerGateway();
+    this.captureService = createCaptureService();
   }
 
   @Get()
@@ -97,6 +101,7 @@ class IpAttachmentHandler {
     }
 
     const campaign = await this.indexerGateway.getCampaignDetails(tokenId, campaignId);
+    const ipDetails = await this.indexerGateway.getIpDetails(tokenId);
 
     if (!campaign) {
       return res.status(404).json({
@@ -161,6 +166,25 @@ class IpAttachmentHandler {
         paymentInfoHash,
         decryptAuth,
       );
+
+      const pkpAddress = ipDetails?.owner;
+      const captureId = `${tokenId}-${Date.now()}`;
+
+      // TODO: Uncomment this when naga-test is working
+      // this.captureService
+      //   .capture({
+      //     pkpAddress: pkpAddress!,
+      //     paymentInfo: body.paymentInfo as PaymentInfoDto,
+      //     amount: BigInt(requiredAuthorizedAmount),
+      //   })
+      //   .then(result => {
+      //     if (!result.success) {
+      //       console.error(`[Capture] ${captureId} FAILED - NEEDS MANUAL REVIEW: ${result.error}`);
+      //     }
+      //   })
+      //   .catch(err => {
+      //     console.error(`[Capture] ${captureId} EXCEPTION - NEEDS MANUAL REVIEW:`, err);
+      //   });
 
       res.setHeader("Content-Type", attachmentResult.contentType);
       res.setHeader("Content-Disposition", `attachment; filename="attachment-${attachmentId}"`);

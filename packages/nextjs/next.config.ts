@@ -1,5 +1,12 @@
 import type { NextConfig } from "next";
 
+process.on("uncaughtException", err => {
+  console.error("[Next] uncaughtException:", err);
+});
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("[Next] unhandledRejection:", reason, promise);
+});
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   devIndicators: false,

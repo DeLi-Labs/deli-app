@@ -116,7 +116,6 @@ const UploadCampaignPage: NextPage = () => {
       }
 
       const metadataUri = result.uri;
-      console.log("Upload successful! Metadata URI:", metadataUri);
       toast.success("Metadata uploaded successfully", { id: "upload" });
 
       // Step 2: Find a valid salt that satisfies Uniswap v4 requirements

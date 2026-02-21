@@ -1,8 +1,10 @@
 /**
  * E2E test: get attachment cost → quote (buy tokens) → execute → verify balance →
- * prepareAuthorize → execute → verify → get attachment and save file.
+ * prepareAuthorize → execute → verify → get attachment and save file →
+ * validate capture tx (receiver balance increased).
  *
  * Requires: yarn chain, yarn deploy, yarn start (API at localhost:3000, RPC at localhost:8545).
+ * Capture runs async after attachment decrypt; test polls receiver balance until capture is observed.
  */
 
 import { writeFileSync } from "node:fs";
@@ -30,6 +32,8 @@ const ERC20_ABI = [
 
 const MAX_UINT160 = 2n ** 160n - 1n;
 const TX_SETTLE_DELAY_MS = 2000;
+const CAPTURE_POLL_MS = 1500;
+const CAPTURE_POLL_ATTEMPTS = 20;
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -269,6 +273,20 @@ async function main() {
   console.log("\n📌 Step 6: Get attachment (POST with paymentInfo, then SIWE + Authorization)");
   const bodyWithPayment = { address: userAddress, paymentInfo: pa1.paymentInfo };
 
+  if (!pa1.paymentInfo.receiver || !pa1.paymentInfo.token) {
+    throw new Error("prepareAuthorize paymentInfo missing receiver or token (required for capture validation)");
+  }
+  const receiverAddress = pa1.paymentInfo.receiver;
+  const captureTokenAddress = pa1.paymentInfo.token;
+  const captureAmountWei = parseUnits(attachmentAmount.toString(), 18);
+  const receiverBalanceBeforeCapture = await publicClient.readContract({
+    address: captureTokenAddress,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: [receiverAddress],
+  });
+  console.log(`   Receiver ${receiverAddress} license balance before capture: ${formatUnits(receiverBalanceBeforeCapture, 18)}`);
+
   // First POST: no Authorization → expect 401 with SIWE challenge
   const challengeRes = await fetch(attachmentUrl, {
     method: "POST",
@@ -323,8 +341,31 @@ async function main() {
   console.log(`   Content-Type: ${contentType}`);
   console.log(`   Saved ${buffer.length} bytes to: ${outPath}`);
 
+  // ── 7) Validate capture tx: receiver balance increased ────────────────────
+  console.log("\n📌 Step 7: Validate capture – receiver balance increased");
+  let receiverBalanceAfterCapture = receiverBalanceBeforeCapture;
+  for (let i = 0; i < CAPTURE_POLL_ATTEMPTS; i++) {
+    await delay(CAPTURE_POLL_MS);
+    receiverBalanceAfterCapture = await publicClient.readContract({
+      address: captureTokenAddress,
+      abi: ERC20_ABI,
+      functionName: "balanceOf",
+      args: [receiverAddress],
+    });
+    if (receiverBalanceAfterCapture >= receiverBalanceBeforeCapture + captureAmountWei) {
+      console.log(`   Capture confirmed after ${(i + 1) * CAPTURE_POLL_MS}ms: receiver balance +${formatUnits(captureAmountWei, 18)}`);
+      break;
+    }
+    if (i === CAPTURE_POLL_ATTEMPTS - 1) {
+      throw new Error(
+        `Capture not observed: receiver balance expected to increase by >= ${formatUnits(captureAmountWei, 18)}, ` +
+          `before=${formatUnits(receiverBalanceBeforeCapture, 18)}, after=${formatUnits(receiverBalanceAfterCapture, 18)}`
+      );
+    }
+  }
+
   console.log("\n" + "=".repeat(60));
-  console.log("✅ E2E test passed: quote → buy → authorize → get attachment");
+  console.log("✅ E2E test passed: quote → buy → authorize → get attachment → capture validated");
   console.log("=".repeat(60) + "\n");
 }
 

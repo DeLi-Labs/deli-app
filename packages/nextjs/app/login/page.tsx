@@ -19,14 +19,12 @@ export default function LoginPage() {
     const initializeLit = async () => {
       try {
         setState("initializing");
-        console.log("Creating Lit client...");
 
         // Create Lit client using v8 SDK with Naga network
         const client = await createLitClient({
           network: nagaDev, // Use nagaDev for testnet
         });
 
-        console.log("Lit client created successfully");
         setLitClient(client);
         setState("idle");
       } catch (err) {
@@ -61,15 +59,12 @@ export default function LoginPage() {
 
     try {
       setState("authenticating");
-      console.log("Starting Google authentication...");
 
       // Get auth data using utility (will authenticate if needed)
       const authData = await getAuthData();
       if (!authData) {
         throw new Error("Failed to authenticate with Google");
       }
-
-      console.log("Authentication successful, authData:", authData);
 
       setState("minting");
 

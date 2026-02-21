@@ -14,6 +14,7 @@ export type IPList = IP[];
 
 export type IPDetails = {
   tokenId: number;
+  owner: Address;
   name: string;
   description: string;
   image: string;

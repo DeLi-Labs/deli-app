@@ -1,5 +1,6 @@
 import { IIndexerGateway } from "../indexer";
 import { GraphQLClient } from "graphql-request";
+import { zeroAddress } from "viem";
 import { getSdk } from "~~/generated/graphql";
 import { Attachment, Campaign, IPDetails, IPList } from "~~/types/liquidip";
 
@@ -7,7 +8,7 @@ export class PonderIndexerGateway implements IIndexerGateway {
   private client: ReturnType<typeof getSdk>;
 
   constructor() {
-    const ponderUrl = process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069/graphql";
+    const ponderUrl = process.env.PONDER_URL || "http://localhost:42069/graphql";
     const graphQLClient = new GraphQLClient(ponderUrl);
     this.client = getSdk(graphQLClient);
   }
@@ -125,6 +126,7 @@ export class PonderIndexerGateway implements IIndexerGateway {
    */
   private mapIpToIPDetails(ip: {
     tokenId: string;
+    owner?: string; // Present after codegen is run with schema that includes owner
     name: string;
     description: string;
     image: string;
@@ -142,6 +144,7 @@ export class PonderIndexerGateway implements IIndexerGateway {
   }): IPDetails {
     return {
       tokenId: Number(ip.tokenId),
+      owner: (ip.owner ?? zeroAddress) as `0x${string}`,
       name: ip.name,
       description: ip.description,
       image: ip.image,

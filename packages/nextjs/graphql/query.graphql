@@ -19,6 +19,7 @@ query Ips(
     items {
       id
       tokenId
+      owner
       name
       description
       image
@@ -96,6 +97,7 @@ query Campaigns(
       ip {
         id
         tokenId
+        owner
         name
         description
         image
@@ -116,6 +118,7 @@ query Ip($id: String!) {
   ip(id: $id) {
     id
     tokenId
+    owner
     name
     description
     image

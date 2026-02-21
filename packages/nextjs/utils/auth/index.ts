@@ -18,8 +18,10 @@ import type { AccessControlConditions, AuthSig } from "@lit-protocol/types";
 import { uint8arrayToString } from "@lit-protocol/uint8arrays";
 import { getAddress, keccak256, stringToBytes } from "viem";
 import { encodeAbiParameters } from "viem";
+import type { Account } from "viem";
 import type { z } from "zod";
 import type { SessionKeyPair } from "~~/utils/lit/client";
+import { type LitClient, getLitClient } from "~~/utils/lit/client";
 
 const AUTH_STORAGE_KEY = "lit_google_auth_data";
 const AUTH_EXPIRY_KEY = "lit_google_auth_expiry";
@@ -147,14 +149,42 @@ export const getAuthToken = async (): Promise<string | null> => {
   return JSON.stringify(authData);
 };
 
+export async function addAdminPermission(account: Account, pkpInfo: PKPInfo): Promise<void> {
+  const adminAddress = process.env.NEXT_PUBLIC_ADMIN_APP_ADDRESS;
+  if (!adminAddress) {
+    throw new Error("NEXT_PUBLIC_ADMIN_APP_ADDRESS is not set");
+  }
+
+  const litClient = await getLitClient();
+
+  await litClient
+    .getPKPPermissionsManager({
+      pkpIdentifier: { pubkey: pkpInfo.pubkey },
+      account,
+    })
+    .then(pkpPermissionsManager => {
+      return pkpPermissionsManager
+        .addPermittedAddress({
+          address: adminAddress,
+          scopes: ["sign-anything"],
+        })
+        .catch((error: any) => {
+          console.error("Error adding admin permission:", error);
+          throw error;
+        });
+    })
+    .catch((error: any) => {
+      console.error("Error getting PKP permissions manager:", error);
+      throw error;
+    });
+}
+
 /**
  * Get PKP for given auth data
  * Queries existing PKPs first, if none found, mints a new one
  * No retries - returns immediately with mint result data if needed
  */
-export const getPKP = async (authData: AuthData, litClient: any): Promise<PKPInfo> => {
-  console.log("Checking for existing PKPs...");
-
+export const getPKP = async (authData: AuthData, litClient: LitClient): Promise<PKPInfo> => {
   // Query existing PKPs
   const existingPkps = await litClient.viewPKPsByAuthData({
     authData: {
@@ -167,15 +197,12 @@ export const getPKP = async (authData: AuthData, litClient: any): Promise<PKPInf
     },
   });
 
-  console.log("Existing PKPs:", existingPkps);
-
   // Check if we have existing PKPs
   // Handle both array response and object with pkps property
   const pkps = existingPkps.pkps;
 
   if (pkps && pkps.length > 0) {
     // Use existing PKP
-    console.log("Using existing PKP");
     return {
       pubkey: pkps[0].pubkey,
       ethAddress: pkps[0].ethAddress,
@@ -184,14 +211,11 @@ export const getPKP = async (authData: AuthData, litClient: any): Promise<PKPInf
   }
 
   // No existing PKP, mint new one
-  console.log("Minting new PKP...");
   const mintResult = await litClient.authService.mintWithAuth({
     authData: authData,
     authServiceBaseUrl: process.env.NEXT_PUBLIC_LIT_AUTH_SERVICE_URL || "https://naga-dev-auth-service.getlit.dev",
     scopes: ["sign-anything", "personal-sign"],
   });
-
-  console.log("PKP minted successfully:", mintResult);
 
   // Return PKP info from mint result (no retries, as requested)
   return {

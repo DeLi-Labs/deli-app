@@ -12,7 +12,7 @@ import { SwitchChainError, createWalletClient, custom, fromHex, getAddress, http
 import { getHttpRpcClient, hexToBigInt, hexToNumber } from "viem/utils";
 import type { CreateConnectorFn } from "wagmi";
 import { createConnector, normalizeChainId } from "wagmi";
-import { getPKP } from "~~/utils/auth";
+import { addAdminPermission, getPKP } from "~~/utils/auth";
 import { getLitClient } from "~~/utils/lit/client";
 
 type WagmiConnectorConfig = Parameters<Parameters<typeof createConnector>[0]>[0];
@@ -43,7 +43,7 @@ export class RainbowKitConnector implements ILitConnector {
    * Authenticate via the provider (e.g. Google popup), fetch/mint a PKP,
    * build a Lit auth context, and persist the session.
    */
-  private async authenticateAndSetSession(): Promise<void> {
+  private async authenticateAndSetSession(chainId: number): Promise<void> {
     const authData = await this.authenticator.authenticate();
     await this.authStorage.set(authData);
 
@@ -52,11 +52,14 @@ export class RainbowKitConnector implements ILitConnector {
     const authContext = await buildPkpAuthContext(authData, pkpInfo.pubkey);
 
     this.sessionStore.setPkpSession(pkpInfo, authContext, Date.now() + SESSION_EXPIRY_MS);
+    const pkpAccount = await this.sessionStore.getPkpAccount(chainId);
+    // TODO: Uncomment this when naga-test is working
+    // await addAdminPermission(pkpAccount, pkpInfo);
   }
 
   private impl(config: WagmiConnectorConfig): ReturnType<CreateConnectorFn> {
     const sessionStore = this.sessionStore;
-    const authenticate = () => this.authenticateAndSetSession();
+    const authenticate = (chainId: number) => this.authenticateAndSetSession(chainId);
     let connectedChainId: number;
 
     return {
@@ -69,10 +72,9 @@ export class RainbowKitConnector implements ILitConnector {
         const targetChainId = chainId ?? config.chains[0].id;
 
         if (!sessionStore.isSessionValid()) {
-          await authenticate();
+          await authenticate(targetChainId);
         }
 
-        await sessionStore.getPkpAccount(targetChainId);
         connectedChainId = targetChainId;
 
         const accounts = await this.getAccounts();

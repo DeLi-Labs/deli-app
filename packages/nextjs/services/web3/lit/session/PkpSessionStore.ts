@@ -77,7 +77,9 @@ export class PkpSessionStore implements IPkpSessionStore {
 
   async getPkpAccount(chainId: number): Promise<Account> {
     const cached = this.accountsByChain.get(chainId);
-    if (cached && this.isSessionValid()) return cached;
+    if (cached && this.isSessionValid()) {
+      return cached;
+    }
 
     if (this.isSessionValid() && !this.currentAuthContext) {
       await this.rebuildAuthContext();

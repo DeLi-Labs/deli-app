@@ -19,6 +19,7 @@ export const denominationUnit = onchainEnum("denomination_unit", [
 export const ip = onchainTable("ip", (t) => ({
   id: t.text().primaryKey(),
   tokenId: t.bigint().notNull(), // Note: Ponder doesn't support unique constraints
+  owner: t.hex().notNull(), // Address to which the IP was minted
   name: t.text().notNull(),
   description: t.text().notNull(),
   image: t.text().notNull(),

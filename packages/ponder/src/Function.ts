@@ -27,7 +27,6 @@ function getStorageGateway() {
       }
       
       storageGateway = createStorageGateway();
-      console.log(`[Storage Gateway] Successfully created: ${storageGateway.getStorageType()}`);
     } catch (error) {
       console.error("[Storage Gateway] Failed to create storage gateway:", error);
       // Re-throw the original error to preserve the actual error message
@@ -89,11 +88,13 @@ ponder.on("IPERC721:Transfer", async ({ event, context }) => {
     }
 
     const ipId = `${contract.address}-${tokenId}`;
+    const owner = (event.args.to as string).toLowerCase();
 
     // Insert IP into database
     await context.db.insert(ip).values({
       id: ipId,
       tokenId: tokenId,
+      owner,
       name: metadata.name,
       description: metadata.description,
       image: metadata.image,
@@ -114,10 +115,7 @@ ponder.on("IPERC721:Transfer", async ({ event, context }) => {
       }));
 
       await context.db.insert(attachment).values(attachmentValues);
-      console.log(`Successfully indexed ${attachmentValues.length} attachment(s) for tokenId ${tokenId}`);
     }
-
-    console.log(`Successfully indexed NFT tokenId ${tokenId}`);
   } catch (error) {
     console.error(`Error processing mint for tokenId ${tokenId}:`, error);
     // Don't throw - allow indexing to continue for other events
@@ -210,8 +208,6 @@ ponder.on("CampaignManager:CampaignInitialized", async ({ event, context }) => {
       denominationUnit: metadata.denomination.unit,
       denominationAmount: denominationAmount,
     });
-
-    console.log(`Successfully indexed campaign for patentId ${patentId}, license ${licenseAddress}`);
   } catch (error) {
     console.error(`Error processing campaign initialization for patentId ${patentId}:`, error);
     // Don't throw - allow indexing to continue for other events

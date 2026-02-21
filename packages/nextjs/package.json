@@ -5,8 +5,8 @@
   "scripts": {
     "build": "NODE_OPTIONS='--localstorage-file=./.node-localstorage/store' next build",
     "check-types": "tsc --noEmit --incremental",
-    "codegen": "PONDER_GRAPHQL_URL=${NEXT_PUBLIC_PONDER_URL:-http://localhost:42069}/graphql graphql-codegen --config codegen.yml",
-    "codegen:watch": "PONDER_GRAPHQL_URL=${NEXT_PUBLIC_PONDER_URL:-http://localhost:42069}/graphql graphql-codegen --config codegen.yml --watch",
+    "codegen": "PONDER_GRAPHQL_URL=${PONDER_URL:-http://localhost:42069}/graphql graphql-codegen --config codegen.yml",
+    "codegen:watch": "PONDER_GRAPHQL_URL=${PONDER_URL:-http://localhost:42069}/graphql graphql-codegen --config codegen.yml --watch",
     "dev": "NODE_OPTIONS='--localstorage-file=./.node-localstorage/store' next dev",
     "format": "prettier --write . '!(node_modules|.next|contracts)/**/*'",
     "ipfs": "NEXT_PUBLIC_IPFS_BUILD=true yarn build && yarn bgipfs upload config init -u https://upload.bgipfs.com && CID=$(yarn bgipfs upload out | grep -o 'CID: [^ ]*' | cut -d' ' -f2) && [ ! -z \"$CID\" ] && echo '🚀 Upload complete! Your site is now available at: https://community.bgipfs.com/ipfs/'$CID || echo '❌ Upload failed'",

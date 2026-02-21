@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IPoolManager } from "@v4-core/interfaces/IPoolManager.sol";
-import { PoolKey } from "@v4-core/types/PoolKey.sol";
-import { Currency } from "@v4-core/types/Currency.sol";
-import { IHooks } from "@v4-core/interfaces/IHooks.sol";
-import { FixedPriceLicenseHook } from "./FixedPriceLicenseHook.sol";
-import { LicenseERC20 } from "../LicenseERC20.sol";
-import { TickMath } from "@v4-core/libraries/TickMath.sol";
-import { LicenseType } from "../LicenseERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
-import { PoolId } from "@v4-core/types/PoolId.sol";
-import { IAuthCaptureEscrow } from "../interfaces/IAuthCaptureEscrow.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IPoolManager} from "@v4-core/interfaces/IPoolManager.sol";
+import {PoolKey} from "@v4-core/types/PoolKey.sol";
+import {Currency} from "@v4-core/types/Currency.sol";
+import {IHooks} from "@v4-core/interfaces/IHooks.sol";
+import {FixedPriceLicenseHook} from "./FixedPriceLicenseHook.sol";
+import {LicenseERC20} from "../LicenseERC20.sol";
+import {TickMath} from "@v4-core/libraries/TickMath.sol";
+import {LicenseType} from "../LicenseERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
+import {PoolId} from "@v4-core/types/PoolId.sol";
+import {IAuthCaptureEscrow} from "../interfaces/IAuthCaptureEscrow.sol";
 
 /// @title CampaignManager
 /// @notice Deploys campaigns with configuration; seeds pool.
@@ -30,7 +30,12 @@ contract CampaignManager is Ownable, IERC721Receiver {
     error NotStaker();
     error CampaignAlreadyInitialized();
 
-    event CampaignInitialized(uint256 patentId, address license, address numeraire, PoolId poolId);
+    event CampaignInitialized(
+        uint256 patentId,
+        address license,
+        address numeraire,
+        PoolId poolId
+    );
 
     event PatentStaked(uint256 patentId, address staker);
     event PatentRedeemed(uint256 patentId, address staker);
@@ -86,10 +91,20 @@ contract CampaignManager is Ownable, IERC721Receiver {
         uint256 price,
         uint256 totalTokensToSell
     ) external {
-        _validateGeneral(assetMetadataUri, patentId, licenseSalt, numeraire, licenseType);
+        _validateGeneral(
+            assetMetadataUri,
+            patentId,
+            licenseSalt,
+            numeraire,
+            licenseType
+        );
 
-        LicenseERC20 license =
-            new LicenseERC20{ salt: licenseSalt }(patentErc721, patentId, assetMetadataUri, licenseType);
+        LicenseERC20 license = new LicenseERC20{salt: licenseSalt}(
+            patentErc721,
+            patentId,
+            assetMetadataUri,
+            licenseType
+        );
 
         PoolKey memory poolKey = PoolKey({
             currency0: Currency.wrap(address(numeraire)),
@@ -109,11 +124,19 @@ contract CampaignManager is Ownable, IERC721Receiver {
 
         licenseHook.setPrice(poolKey.toId(), price);
 
-        emit CampaignInitialized(patentId, address(license), address(numeraire), poolKey.toId());
+        emit CampaignInitialized(
+            patentId,
+            address(license),
+            address(numeraire),
+            poolKey.toId()
+        );
     }
 
     // called by any user who want to settle licensed action
-    function authorize(IAuthCaptureEscrow.PaymentInfo memory paymentInfo, bytes calldata collectorData) external {
+    function authorize(
+        IAuthCaptureEscrow.PaymentInfo memory paymentInfo,
+        bytes calldata collectorData
+    ) external {
         LicenseERC20 license = LicenseERC20(paymentInfo.token);
         uint256 patentId = license.patentId();
 
@@ -121,18 +144,30 @@ contract CampaignManager is Ownable, IERC721Receiver {
 
         require(paymentInfo.operator == address(this), InvalidOperator());
 
-        authCaptureEscrow.authorize(paymentInfo, paymentInfo.maxAmount, permit2TokenCollector, collectorData);
+        authCaptureEscrow.authorize(
+            paymentInfo,
+            paymentInfo.maxAmount,
+            permit2TokenCollector,
+            collectorData
+        );
     }
 
     // can be called only by patent owner
-    function capture(IAuthCaptureEscrow.PaymentInfo memory paymentInfo, uint256 amount) external {
+    function capture(
+        IAuthCaptureEscrow.PaymentInfo memory paymentInfo,
+        uint256 amount
+    ) external {
         LicenseERC20 license = LicenseERC20(paymentInfo.token);
         uint256 patentId = license.patentId();
 
         require(patentId != 0, InvalidLicenseContract());
 
         // Verify caller owns the patent
-        require(patentErc721.ownerOf(patentId) == msg.sender, PatentNotOwned());
+        require(
+            patentErc721.ownerOf(patentId) == msg.sender ||
+                stakedPatents[patentId] == msg.sender,
+            PatentNotOwned()
+        );
 
         // Verify operator matches
         require(paymentInfo.operator == address(this), InvalidOperator());
@@ -152,7 +187,13 @@ contract CampaignManager is Ownable, IERC721Receiver {
         // Compute the address of the contract to be deployed and verify it's compatible with uni v4
         bytes32 bytecodeHash = keccak256(
             abi.encodePacked(
-                type(LicenseERC20).creationCode, abi.encode(patentRegistry, patentId, assetMetadataUri, licenseType)
+                type(LicenseERC20).creationCode,
+                abi.encode(
+                    patentRegistry,
+                    patentId,
+                    assetMetadataUri,
+                    licenseType
+                )
             )
         );
         address asset = Create2.computeAddress(salt, bytecodeHash, deployer);
@@ -172,18 +213,30 @@ contract CampaignManager is Ownable, IERC721Receiver {
         // Check that the patent is staked and the caller is the staker
         require(stakedPatents[patentId] == msg.sender, PatentNotOwned());
         // Verify that the patent is actually owned by this contract (staked)
-        require(patentErc721.ownerOf(patentId) == address(this), PatentNotStaked());
-        validateAssetOrder(numeraire, licenseSalt, assetMetadataUri, patentId, licenseType, patentErc721, address(this));
+        require(
+            patentErc721.ownerOf(patentId) == address(this),
+            PatentNotStaked()
+        );
+        validateAssetOrder(
+            numeraire,
+            licenseSalt,
+            assetMetadataUri,
+            patentId,
+            licenseType,
+            patentErc721,
+            address(this)
+        );
         // Check that the numeraire is allowed
         require(allowedNumeraires[numeraire], NumeraireNotAllowed());
     }
 
     /// @notice Handles receipt of ERC721 tokens. This function is called when a patent NFT is transferred to this contract.
-    function onERC721Received(address, address from, uint256 tokenId, bytes calldata)
-        external
-        override
-        returns (bytes4)
-    {
+    function onERC721Received(
+        address,
+        address from,
+        uint256 tokenId,
+        bytes calldata
+    ) external override returns (bytes4) {
         // Only accept tokens from the patent ERC721 contract
         require(msg.sender == address(patentErc721), "Invalid token contract");
 

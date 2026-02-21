@@ -53,7 +53,7 @@ class IpProvider {
     );
 
     // Compose metadata JSON
-    const metadata: IPDetails = {
+    const metadata = {
       tokenId: 0,
       name: formData.name,
       description: formData.description,
